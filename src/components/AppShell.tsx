@@ -10,6 +10,7 @@ import { StatsPanel } from "@/components/Panels/StatsPanel";
 import { SearchPanel } from "@/components/Panels/SearchPanel";
 import { AircraftFetcher } from "@/hooks/useAircraftFetcher";
 import { AISConnector } from "@/hooks/useAISConnector";
+import { FavoriteNotifier } from "@/components/FavoriteNotifier";
 
 export function AppShell() {
   const darkMode = useStore((s) => s.darkMode);
@@ -21,12 +22,19 @@ export function AppShell() {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
+
   const hasSelection = selectedAircraft !== null || selectedShip !== null;
 
   return (
     <div className="h-screen w-screen relative overflow-hidden">
       <AircraftFetcher />
       <AISConnector />
+      <FavoriteNotifier />
       <TopBar />
       <div className="absolute inset-0 top-14">
         <MapView />
