@@ -55,8 +55,8 @@ function parseADSBLol(ac: ADSBLolAircraft[]): ParsedState[] {
       latitude: a.lat!,
       baro_altitude:
         typeof a.alt_baro === "number" ? a.alt_baro * 0.3048 : null,
-      on_ground: a.alt_baro === "ground" || (!a.alt_baro && a.gs && a.gs < 5),
-      velocity: a.gs ? a.gs * 0.514444 : null,
+      on_ground: Boolean(a.alt_baro === "ground" || (!a.alt_baro && a.gs != null && a.gs < 5)),
+      velocity: a.gs != null ? a.gs * 0.514444 : null,
       true_track: a.track || null,
       vertical_rate: null,
       geo_altitude: a.alt_geom ? a.alt_geom * 0.3048 : null,
