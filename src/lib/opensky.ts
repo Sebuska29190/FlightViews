@@ -1,5 +1,9 @@
 const OPENSKY_TOKEN_URL =
   "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token";
+const CORS_PROXIES = [
+  "https://corsproxy.io/?",
+  "https://api.allorigins.win/raw?url=",
+];
 
 interface TokenData {
   access_token: string;
@@ -8,6 +12,42 @@ interface TokenData {
 
 let cachedToken: TokenData | null = null;
 let tokenFailed = false;
+let workingProxy: string | null = null;
+
+async function tryFetch(url: string, options: RequestInit, withProxy = false): Promise<Response | null> {
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 8000);
+
+  try {
+    const res = await fetch(url, { ...options, signal: ctrl.signal });
+    clearTimeout(timeout);
+    return res;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
+
+async function fetchWithProxy(url: string, options: RequestInit): Promise<Response | null> {
+  if (workingProxy) {
+    const res = await tryFetch(`${workingProxy}${encodeURIComponent(url)}`, options);
+    if (res && res.ok) return res;
+    workingProxy = null;
+  }
+
+  const res = await tryFetch(url, options);
+  if (res) return res;
+
+  for (const proxy of CORS_PROXIES) {
+    const proxyRes = await tryFetch(`${proxy}${encodeURIComponent(url)}`, options);
+    if (proxyRes && proxyRes.ok) {
+      workingProxy = proxy;
+      return proxyRes;
+    }
+  }
+
+  return null;
+}
 
 export async function getOpenSkyToken(): Promise<string | null> {
   if (tokenFailed) return null;
@@ -21,39 +61,24 @@ export async function getOpenSkyToken(): Promise<string | null> {
     return cachedToken.access_token;
   }
 
-  try {
-    const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 5000);
+  const res = await fetchWithProxy(OPENSKY_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`,
+  });
 
-    const res = await fetch(OPENSKY_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
-      signal: ctrl.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      console.error("[OpenSky Token] Failed:", res.status, res.statusText);
-      tokenFailed = true;
-      return null;
-    }
-    const data = await res.json();
-    cachedToken = {
-      access_token: data.access_token,
-      expires_at: Date.now() + (data.expires_in || 1800) * 1000,
-    };
-    return cachedToken.access_token;
-  } catch (e) {
-    console.error("[OpenSky Token] Error:", e);
+  if (!res || !res.ok) {
+    console.error("[OpenSky Token] Failed:", res?.status);
     tokenFailed = true;
     return null;
   }
+
+  const data = await res.json();
+  cachedToken = {
+    access_token: data.access_token,
+    expires_at: Date.now() + (data.expires_in || 1800) * 1000,
+  };
+  return cachedToken.access_token;
 }
 
 export interface OpenSkyStateVector {
@@ -119,6 +144,8 @@ export async function fetchStates(
     lomax: lomax.toFixed(4),
   });
 
+  const url = `https://opensky-network.org/api/states/all?${params}`;
+
   const token = await getOpenSkyToken();
   const tries: { headers: Record<string, string>; mode: string }[] = [];
 
@@ -128,32 +155,25 @@ export async function fetchStates(
   tries.push({ headers: {}, mode: "anonymous" });
 
   for (const { headers, mode } of tries) {
-    try {
-      const ctrl = new AbortController();
-      const timeout = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetchWithProxy(url, { headers, next: { revalidate: 10 } });
 
-      const res = await fetch(
-        `https://opensky-network.org/api/states/all?${params}`,
-        { headers, signal: ctrl.signal, next: { revalidate: 10 } }
-      );
-
-      clearTimeout(timeout);
-
-      if (res.ok) {
-        const data = await res.json();
-        console.log(`[OpenSky ${mode}] OK: ${data.states?.length || 0} states`);
-        return data.states ? parseStateVectors(data.states) : [];
-      }
-
-      if (res.status === 429) {
-        console.warn(`[OpenSky ${mode}] Rate limited (429)`);
-        return null;
-      }
-
-      console.warn(`[OpenSky ${mode}] Failed: ${res.status} ${res.statusText}`);
-    } catch (e) {
-      console.error(`[OpenSky ${mode}] Error:`, e);
+    if (!res) {
+      console.error(`[OpenSky ${mode}] Connection failed (timeout or network error)`);
+      continue;
     }
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`[OpenSky ${mode}${workingProxy ? "+proxy" : ""}] OK: ${data.states?.length || 0} states`);
+      return data.states ? parseStateVectors(data.states) : [];
+    }
+
+    if (res.status === 429) {
+      console.warn(`[OpenSky ${mode}] Rate limited (429)`);
+      return null;
+    }
+
+    console.warn(`[OpenSky ${mode}] Failed: ${res.status} ${res.statusText}`);
   }
 
   return null;
