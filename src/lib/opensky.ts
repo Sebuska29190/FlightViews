@@ -61,7 +61,7 @@ export interface OpenSkyStateVector {
   category: number;
 }
 
-function parseStateVectors(raw: number[][]): OpenSkyStateVector[] {
+function parseStateVectors(raw: unknown[][]): OpenSkyStateVector[] {
   return raw
     .filter(
       (s) =>
@@ -74,18 +74,18 @@ function parseStateVectors(raw: number[][]): OpenSkyStateVector[] {
       icao24: s[0] as string,
       callsign: s[1] ? (s[1] as string).trim() : null,
       origin_country: s[2] as string,
-      time_position: s[3],
-      last_contact: s[4],
-      longitude: s[5],
-      latitude: s[6],
-      baro_altitude: s[7],
-      on_ground: s[8],
-      velocity: s[9],
-      true_track: s[10],
-      vertical_rate: s[11],
+      time_position: s[3] as number | null,
+      last_contact: s[4] as number,
+      longitude: s[5] as number,
+      latitude: s[6] as number,
+      baro_altitude: s[7] as number | null,
+      on_ground: Boolean(s[8]),
+      velocity: s[9] as number | null,
+      true_track: s[10] as number | null,
+      vertical_rate: s[11] as number | null,
       geo_altitude: s[13] as number | null,
       squawk: s[14] as string | null,
-      spi: s[15] as boolean,
+      spi: Boolean(s[15]),
       position_source: s[16] as number,
       category: (s[17] as number) || 0,
     }));
