@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
+  "name": "flight-views",
   "regions": ["fra1"],
   "headers": [
     {

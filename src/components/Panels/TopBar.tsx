@@ -1,57 +1,78 @@
 "use client";
 
 import { useStore } from "@/store/useStore";
-import { Plane, Ship, Layers, Menu, Search, Sun, Moon, Star } from "lucide-react";
+import { 
+  Plane, Ship, Layers, Menu, Sun, Moon, Star, 
+  Search, ChevronLeft, ChevronRight 
+} from "lucide-react";
 
 export function TopBar() {
-  const { layerMode, setLayerMode, darkMode, toggleDarkMode, sidebarOpen, toggleSidebar, favorites } = useStore();
+  const { 
+    layerMode, setLayerMode, darkMode, toggleDarkMode, 
+    sidebarOpen, toggleSidebar, favorites, aircraft, ships 
+  } = useStore();
 
-  const layerButtons: { mode: typeof layerMode; icon: React.ReactNode; label: string }[] = [
-    { mode: "all", icon: <Layers size={16} />, label: "All" },
-    { mode: "aircraft", icon: <Plane size={16} />, label: "Aircraft" },
-    { mode: "ships", icon: <Ship size={16} />, label: "Ships" },
+  const layerButtons: { mode: typeof layerMode; icon: React.ReactNode; label: string; count: number }[] = [
+    { mode: "all", icon: <Layers size={14} />, label: "All", count: aircraft.length + ships.size },
+    { mode: "aircraft", icon: <Plane size={14} />, label: "Aircraft", count: aircraft.length },
+    { mode: "ships", icon: <Ship size={14} />, label: "Ships", count: ships.size },
   ];
 
   return (
-    <header className="absolute top-0 left-0 right-0 z-[1001] h-14 flex items-center gap-2 px-3"
-            style={{ background: "var(--panel-bg)", borderBottom: "1px solid var(--border-color)" }}>
-      <button onClick={toggleSidebar}
-              className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-              aria-label="Toggle sidebar">
-        <Menu size={20} />
+    <header className="absolute top-0 left-0 right-0 z-[1001] flex items-center gap-3 px-4 py-3 glass-panel border-b border-[var(--border-glass)]">
+      <button 
+        onClick={toggleSidebar}
+        className="p-2 rounded-xl hover:bg-[var(--bg-glass-hover)] transition-all duration-200 relative"
+        aria-label="Toggle sidebar"
+      >
+        {sidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
       </button>
 
-      <h1 className="text-lg font-bold tracking-tight hidden sm:block">
-        Sky<span className="text-[var(--accent)]">Sea</span>
-      </h1>
+      <div className="flex flex-col">
+        <h1 className="text-lg font-bold tracking-tight leading-tight">
+          Sky<span className="text-[var(--accent)]">Sea</span>
+        </h1>
+        <p className="text-[10px] text-[var(--text-tertiary)] -mt-0.5 font-medium">Live Tracker</p>
+      </div>
 
-      <div className="flex items-center gap-1 ml-2 sm:ml-4 bg-[var(--bg-tertiary)] p-1 rounded-lg">
-        {layerButtons.map(({ mode, icon, label }) => (
-          <button key={mode}
-                  onClick={() => setLayerMode(mode)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    layerMode === mode
-                      ? "bg-[var(--accent)] text-white shadow-sm"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  }`}>
+      <div className="flex items-center gap-1 ml-3 p-1 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-glass)]">
+        {layerButtons.map(({ mode, icon, label, count }) => (
+          <button 
+            key={mode}
+            onClick={() => setLayerMode(mode)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+              layerMode === mode
+                ? "bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent-glow)]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-glass-hover)]"
+            }`}
+          >
             {icon}
             <span className="hidden sm:inline">{label}</span>
+            {count > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                layerMode === mode ? "bg-white/20" : "bg-[var(--bg-tertiary)]"
+              }`}>
+                {count > 999 ? `${(count / 1000).toFixed(1)}k` : count}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      <div className="ml-auto flex items-center gap-1">
-        <button onClick={toggleDarkMode}
-                className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-                aria-label="Toggle theme">
-          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
+      <div className="ml-auto flex items-center gap-2">
         {favorites.size > 0 && (
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--bg-tertiary)] text-xs">
-            <Star size={14} className="text-[var(--warning)]" />
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-xs font-medium text-yellow-600 dark:text-yellow-400">
+            <Star size={13} className="fill-current" />
             <span>{favorites.size}</span>
           </div>
         )}
+        <button 
+          onClick={toggleDarkMode}
+          className="p-2 rounded-xl hover:bg-[var(--bg-glass-hover)] transition-all duration-200"
+          aria-label="Toggle theme"
+        >
+          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
       </div>
     </header>
   );

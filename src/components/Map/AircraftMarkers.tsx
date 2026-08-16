@@ -1,18 +1,41 @@
 "use client";
 
 import { useMemo } from "react";
-import { CircleMarker, Tooltip, useMap } from "react-leaflet";
+import { Marker, Tooltip, useMap } from "react-leaflet";
+import L from "leaflet";
 import { useStore } from "@/store/useStore";
 import type { Aircraft } from "@/lib/types";
 
-const MAX_VISIBLE_MARKERS = 500;
+const MAX_MARKERS = 500;
 
-function getAircraftColor(a: Aircraft): string {
-  if (a.on_ground) return "#94a3b8";
-  if (a.category === 8) return "#a855f7";
-  if (a.velocity && a.velocity > 250) return "#ef4444";
-  if (a.velocity && a.velocity > 150) return "#f59e0b";
-  return "#3b82f6";
+function getAltitudeColor(alt: number | null): string {
+  if (alt === null) return "#94a3b8";
+  if (alt === 0) return "#64748b";
+  if (alt < 3000) return "#fbbf24";
+  if (alt < 10000) return "#22c55e";
+  if (alt < 25000) return "#06b6d4";
+  if (alt < 35000) return "#3b82f6";
+  return "#8b5cf6";
+}
+
+function createAircraftIcon(rotation: number, color: string, isOnGround: boolean): L.DivIcon {
+  const size = isOnGround ? 18 : 24;
+  const svg = `
+    <div class="aircraft-marker" style="transform: rotate(${rotation}deg); width: ${size}px; height: ${size}px;">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+        <path d="M12 2L8 8L2 10L8 12L12 22L16 12L22 10L16 8L12 2Z" 
+              fill="${color}" 
+              stroke="${isOnGround ? '#000' : 'rgba(255,255,255,0.8)'}" 
+              stroke-width="1"/>
+      </svg>
+    </div>
+  `;
+  return L.divIcon({
+    html: svg,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
 }
 
 export function AircraftMarkers() {
@@ -54,10 +77,21 @@ export function AircraftMarkers() {
 
     const favs = result.filter((a) => favorites.has(a.icao24));
     const nonFavs = result.filter((a) => !favorites.has(a.icao24));
-    const remaining = MAX_VISIBLE_MARKERS - favs.length;
-
-    return [...favs, ...nonFavs.slice(0, Math.max(0, remaining))];
+    return [...favs, ...nonFavs.slice(0, MAX_MARKERS - favs.length)];
   }, [aircraft, layerMode, filters, searchQuery, favorites]);
+
+  const icons = useMemo(() => {
+    const cache = new Map<string, L.DivIcon>();
+    filtered.forEach((a) => {
+      const rotation = a.true_track || 0;
+      const color = getAltitudeColor(a.baro_altitude);
+      const key = `${Math.round(rotation / 5) * 5}-${color}-${a.on_ground}`;
+      if (!cache.has(key)) {
+        cache.set(key, createAircraftIcon(rotation, color, a.on_ground));
+      }
+    });
+    return cache;
+  }, [filtered]);
 
   if (filtered.length === 0) return null;
 
@@ -65,39 +99,52 @@ export function AircraftMarkers() {
     <>
       {filtered.map((a) => {
         if (!a.latitude || !a.longitude) return null;
+        const rotation = a.true_track || 0;
+        const color = getAltitudeColor(a.baro_altitude);
+        const key = `${Math.round(rotation / 5) * 5}-${color}-${a.on_ground}`;
+        const icon = icons.get(key)!;
         const isFav = favorites.has(a.icao24);
-        const color = getAircraftColor(a);
-        const radius = isFav ? 8 : a.on_ground ? 4 : 6;
 
         return (
-          <CircleMarker
+          <Marker
             key={a.icao24}
-            center={[a.latitude, a.longitude]}
-            radius={radius}
-            pathOptions={{
-              color: isFav ? "#f59e0b" : color,
-              fillColor: isFav ? "#f59e0b" : color,
-              fillOpacity: 0.85,
-              weight: isFav ? 3 : 1.5,
-            }}
+            position={[a.latitude, a.longitude]}
+            icon={icon}
             eventHandlers={{
               click: () => {
                 selectAircraft(a);
-                map.flyTo([a.latitude!, a.longitude!], Math.max(map.getZoom(), 8), {
-                  duration: 0.5,
+                map.flyTo([a.latitude!, a.longitude!], Math.max(map.getZoom(), 9), {
+                  duration: 0.6,
+                  easeLinearity: 0.5,
                 });
               },
             }}
           >
-            <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-              <div className="text-xs">
-                <div className="font-bold">{a.callsign || a.icao24}</div>
-                <div>{a.origin_country}</div>
-                {a.baro_altitude ? <div>{(a.baro_altitude * 3.28).toFixed(0)} ft</div> : null}
-                {a.velocity ? <div>{(a.velocity * 3.6).toFixed(0)} km/h</div> : null}
+            <Tooltip 
+              direction="top" 
+              offset={[0, -12]} 
+              opacity={0.95}
+              className="glass-tooltip"
+            >
+              <div className="text-xs font-medium p-1">
+                <div className="font-bold text-sm">{a.callsign || a.icao24.toUpperCase()}</div>
+                {a.callsign && <div className="text-[10px] text-gray-400">{a.icao24.toUpperCase()}</div>}
+                {a.baro_altitude && (
+                  <div className="mt-1 flex items-center gap-1">
+                    <span className="text-blue-400">↑</span>
+                    <span>{(a.baro_altitude * 3.28).toFixed(0)} ft</span>
+                  </div>
+                )}
+                {a.velocity && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-green-400">→</span>
+                    <span>{(a.velocity * 1.94384).toFixed(0)} kt</span>
+                  </div>
+                )}
+                {isFav && <div className="mt-1 text-yellow-400">★ Favorite</div>}
               </div>
             </Tooltip>
-          </CircleMarker>
+          </Marker>
         );
       })}
     </>

@@ -10,3 +10,5 @@ out/
 docs/API.md
 docs/ARCHITECTURE.md
 docs/DEPLOYMENT.md
+
+.vercel
