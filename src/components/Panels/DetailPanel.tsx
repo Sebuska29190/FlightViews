@@ -98,7 +98,7 @@ export function DetailPanel() {
     : (selectedShip!.ship_name || `Vessel ${selectedShip!.mmsi}`);
   const subtitle = isAircraft 
     ? `${selectedAircraft!.icao24.toUpperCase()} • ${selectedAircraft!.origin_country}`
-    : `MMSI ${selectedShip!.mmsi}${selectedShip!.callsign ? ` • ${selectedShip.callsign}` : ""}`;
+    : `MMSI ${selectedShip!.mmsi}${selectedShip!.callsign ? ` • ${selectedShip!.callsign}` : ""}`;
 
   return (
     <div className="slide-in">
