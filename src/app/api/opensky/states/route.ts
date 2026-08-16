@@ -19,13 +19,21 @@ export async function GET(request: NextRequest) {
 
   if (states === null) {
     return Response.json(
-      { error: "OpenSky API unavailable", states: [] },
+      {
+        error: "OpenSky API unavailable - may be blocking AWS IPs. Try again in 10s.",
+        states: [],
+        mode: "error",
+      },
       { status: 503 }
     );
   }
 
   return Response.json(
-    { time: Math.floor(Date.now() / 1000), states },
+    {
+      time: Math.floor(Date.now() / 1000),
+      states,
+      mode: process.env.OPENSKY_CLIENT_ID ? "authenticated" : "anonymous",
+    },
     {
       headers: {
         "Cache-Control": "s-maxage=10, stale-while-revalidate=5",

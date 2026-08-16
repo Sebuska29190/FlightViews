@@ -7,8 +7,11 @@ interface TokenData {
 }
 
 let cachedToken: TokenData | null = null;
+let tokenFailed = false;
 
 export async function getOpenSkyToken(): Promise<string | null> {
+  if (tokenFailed) return null;
+
   const clientId = process.env.OPENSKY_CLIENT_ID;
   const clientSecret = process.env.OPENSKY_CLIENT_SECRET;
 
@@ -19,6 +22,9 @@ export async function getOpenSkyToken(): Promise<string | null> {
   }
 
   try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 5000);
+
     const res = await fetch(OPENSKY_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -27,16 +33,25 @@ export async function getOpenSkyToken(): Promise<string | null> {
         client_id: clientId,
         client_secret: clientSecret,
       }),
+      signal: ctrl.signal,
     });
 
-    if (!res.ok) return null;
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.error("[OpenSky Token] Failed:", res.status, res.statusText);
+      tokenFailed = true;
+      return null;
+    }
     const data = await res.json();
     cachedToken = {
       access_token: data.access_token,
       expires_at: Date.now() + (data.expires_in || 1800) * 1000,
     };
     return cachedToken.access_token;
-  } catch {
+  } catch (e) {
+    console.error("[OpenSky Token] Error:", e);
+    tokenFailed = true;
     return null;
   }
 }
@@ -97,29 +112,51 @@ export async function fetchStates(
   lamax: number,
   lomax: number
 ): Promise<OpenSkyStateVector[] | null> {
-  const token = await getOpenSkyToken();
   const params = new URLSearchParams({
-    lamin: lamin.toString(),
-    lomin: lomin.toString(),
-    lamax: lamax.toString(),
-    lomax: lomax.toString(),
+    lamin: lamin.toFixed(4),
+    lomin: lomin.toFixed(4),
+    lamax: lamax.toFixed(4),
+    lomax: lomax.toFixed(4),
   });
 
-  const headers: Record<string, string> = {};
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const token = await getOpenSkyToken();
+  const tries: { headers: Record<string, string>; mode: string }[] = [];
 
-  try {
-    const res = await fetch(
-      `https://opensky-network.org/api/states/all?${params}`,
-      { headers, next: { revalidate: 10 } }
-    );
-
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.states ? parseStateVectors(data.states) : [];
-  } catch {
-    return null;
+  if (token) {
+    tries.push({ headers: { Authorization: `Bearer ${token}` }, mode: "auth" });
   }
+  tries.push({ headers: {}, mode: "anonymous" });
+
+  for (const { headers, mode } of tries) {
+    try {
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 8000);
+
+      const res = await fetch(
+        `https://opensky-network.org/api/states/all?${params}`,
+        { headers, signal: ctrl.signal, next: { revalidate: 10 } }
+      );
+
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`[OpenSky ${mode}] OK: ${data.states?.length || 0} states`);
+        return data.states ? parseStateVectors(data.states) : [];
+      }
+
+      if (res.status === 429) {
+        console.warn(`[OpenSky ${mode}] Rate limited (429)`);
+        return null;
+      }
+
+      console.warn(`[OpenSky ${mode}] Failed: ${res.status} ${res.statusText}`);
+    } catch (e) {
+      console.error(`[OpenSky ${mode}] Error:`, e);
+    }
+  }
+
+  return null;
 }
 
 export async function fetchTrack(
