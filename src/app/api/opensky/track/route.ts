@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: `grant_type=client_credentials&client_id=${encodeURIComponent(process.env.OPENSKY_CLIENT_ID)}&client_secret=${encodeURIComponent(process.env.OPENSKY_CLIENT_SECRET)}`,
+          body: `grant_type=client_credentials&client_id=${encodeURIComponent(process.env.OPENSKY_CLIENT_ID || "")}&client_secret=${encodeURIComponent(process.env.OPENSKY_CLIENT_SECRET || "")}`,
         }
       );
       if (tokenRes.ok) {
