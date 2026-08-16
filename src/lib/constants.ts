@@ -5,6 +5,7 @@ export const OPENSKY_TOKEN_URL =
 
 export const OPENMETEO_URL = "https://api.open-meteo.com/v1/forecast";
 export const AISSTREAM_WS_URL = "wss://stream.aisstream.io/v0/stream";
+export const ADSB_LOL_URL = "https://api.adsb.lol/v2/point";
 
 export const MAP_DEFAULT_CENTER: [number, number] = [51.5074, -0.1278];
 export const MAP_DEFAULT_ZOOM = 5;
