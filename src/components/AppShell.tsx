@@ -8,6 +8,7 @@ import { DetailPanel } from "@/components/Panels/DetailPanel";
 import { FilterPanel } from "@/components/Panels/FilterPanel";
 import { StatsPanel } from "@/components/Panels/StatsPanel";
 import { SearchPanel } from "@/components/Panels/SearchPanel";
+import { StatusBar } from "@/components/StatusBar";
 import { AircraftFetcher } from "@/hooks/useAircraftFetcher";
 import { AISConnector } from "@/hooks/useAISConnector";
 import { FavoriteNotifier } from "@/components/FavoriteNotifier";
@@ -39,6 +40,8 @@ export function AppShell() {
       <div className="absolute inset-0 top-14">
         <MapView />
       </div>
+
+      <StatusBar />
 
       {sidebarOpen && (
         <div className="absolute top-14 left-0 bottom-0 z-[1000] w-80 max-w-[90vw] overflow-y-auto scrollbar-thin"
