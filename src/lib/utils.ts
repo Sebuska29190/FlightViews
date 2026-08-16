@@ -1,5 +1,5 @@
 import type { BoundingBox, WeatherData } from "./types";
-import { OPENMETEO_URL, WEATHER_CODES } from "./constants";
+import { OPENMETEO_URL, WEATHER_CODES, SHIP_TYPES } from "./constants";
 
 export function formatSpeed(speed: number | null): string {
   if (speed === null || speed === undefined) return "N/A";
@@ -67,6 +67,5 @@ export function debounce<T extends (...args: unknown[]) => void>(
 export function getShipTypeName(type: number | undefined): string {
   if (!type) return "Unknown";
   const base = Math.floor(type / 10) * 10;
-  const { SHIP_TYPES } = require("./constants");
   return SHIP_TYPES[base] || SHIP_TYPES[type] || "Unknown";
 }
