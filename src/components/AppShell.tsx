@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
-import dynamic from "next/dynamic";
 import { MapView } from "@/components/Map/MapView";
 import { TopBar } from "@/components/Panels/TopBar";
 import { DetailPanel } from "@/components/Panels/DetailPanel";
