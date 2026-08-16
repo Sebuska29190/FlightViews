@@ -6,7 +6,7 @@ import { useStore } from "@/store/useStore";
 export function SearchPanel() {
   const { searchQuery, setSearchQuery, aircraft, ships, selectAircraft, selectShip } = useStore();
 
-  const results = [];
+  const results: Array<{ type: "aircraft" | "ship"; obj: unknown }> = [];
   if (searchQuery.length > 1) {
     const q = searchQuery.toLowerCase();
     const foundAircraft = aircraft.filter((a) =>

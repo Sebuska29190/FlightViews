@@ -71,9 +71,9 @@ function parseStateVectors(raw: number[][]): OpenSkyStateVector[] {
         s[6] !== undefined
     )
     .map((s) => ({
-      icao24: s[0],
-      callsign: s[1] ? s[1].trim() : null,
-      origin_country: s[2],
+      icao24: s[0] as string,
+      callsign: s[1] ? (s[1] as string).trim() : null,
+      origin_country: s[2] as string,
       time_position: s[3],
       last_contact: s[4],
       longitude: s[5],
@@ -83,11 +83,11 @@ function parseStateVectors(raw: number[][]): OpenSkyStateVector[] {
       velocity: s[9],
       true_track: s[10],
       vertical_rate: s[11],
-      geo_altitude: s[13],
-      squawk: s[14],
-      spi: s[15],
-      position_source: s[16],
-      category: s[17] || 0,
+      geo_altitude: s[13] as number | null,
+      squawk: s[14] as string | null,
+      spi: s[15] as boolean,
+      position_source: s[16] as number,
+      category: (s[17] as number) || 0,
     }));
 }
 

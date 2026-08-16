@@ -79,19 +79,19 @@ export function DetailPanel() {
             <InfoRow label="Heading" value={formatHeading(selectedAircraft!?.true_track)} />
             <InfoRow label="Vertical Rate" value={selectedAircraft!?.vertical_rate ? `${selectedAircraft.vertical_rate.toFixed(1)} m/s` : "N/A"} />
             <InfoRow label="On Ground" value={selectedAircraft!?.on_ground ? "Yes" : "No"} />
-            <InfoRow label="Category" value={[0,'No Info',2,'Light',3,'Small',4,'Large',5,'High Vortex',6,'Heavy',7,'High Perf',8,'Rotorcraft'][selectedAircraft!?.category] || "Unknown"} />
-            <InfoRow label="Position Source" value={['ADS-B','ASTERIX','MLAT','FLARM'][selectedAircraft!?.position_source || 0]} />
-            <InfoRow label="Last Contact" value={selectedAircraft!?.last_contact ? new Date(selectedAircraft.last_contact * 1000).toLocaleTimeString() : "N/A"} />
+            <InfoRow label="Category" value={String([0,'No Info',2,'Light',3,'Small',4,'Large',5,'High Vortex',6,'Heavy',7,'High Perf',8,'Rotorcraft'][selectedAircraft!.category] || "Unknown")} />
+            <InfoRow label="Position Source" value={String(['ADS-B','ASTERIX','MLAT','FLARM'][selectedAircraft!.position_source || 0])} />
+            <InfoRow label="Last Contact" value={selectedAircraft!.last_contact ? new Date(selectedAircraft.last_contact * 1000).toLocaleTimeString() : "N/A"} />
           </>
         ) : (
           <>
             <InfoRow label="MMSI" value={selectedShip!.mmsi.toString()} />
-            <InfoRow label="Callsign" value={selectedShip!?.callsign || "N/A"} />
-            <InfoRow label="IMO" value={selectedShip!?.imo?.toString() || "N/A"} />
-            <InfoRow label="Ship Type" value={[0,'Unknown',20,'WIG',30,'Fishing',40,'HSC',50,'Pilot/SAR/Tug',60,'Passenger',70,'Cargo',80,'Tanker',90,'Other'][Math.floor((selectedShip!?.ship_type || 0) / 10) * 10] || "Unknown"} />
-            <InfoRow label="COG" value={selectedShip!?.cog !== null ? `${selectedShip.cog}°` : "N/A"} />
-            <InfoRow label="SOG" value={selectedShip!?.sog !== null ? `${selectedShip.sog.toFixed(1)} kt` : "N/A"} />
-            <InfoRow label="Heading" value={selectedShip!?.true_heading !== null ? `${selectedShip.true_heading}°` : "N/A"} />
+            <InfoRow label="Callsign" value={selectedShip!.callsign || "N/A"} />
+            <InfoRow label="IMO" value={selectedShip!.imo?.toString() || "N/A"} />
+            <InfoRow label="Ship Type" value={String([0,'Unknown',20,'WIG',30,'Fishing',40,'HSC',50,'Pilot/SAR/Tug',60,'Passenger',70,'Cargo',80,'Tanker',90,'Other'][Math.floor((selectedShip!.ship_type || 0) / 10) * 10] || "Unknown")} />
+            <InfoRow label="COG" value={selectedShip!?.cog !== null && selectedShip!?.cog !== undefined ? `${selectedShip!.cog}°` : "N/A"} />
+            <InfoRow label="SOG" value={selectedShip!?.sog !== null && selectedShip!?.sog !== undefined ? `${selectedShip!.sog.toFixed(1)} kt` : "N/A"} />
+            <InfoRow label="Heading" value={selectedShip!?.true_heading !== null && selectedShip!?.true_heading !== undefined ? `${selectedShip!.true_heading}°` : "N/A"} />
             <InfoRow label="Position" value={`${selectedShip!.latitude.toFixed(4)}, ${selectedShip!.longitude.toFixed(4)}`} />
           </>
         )}
